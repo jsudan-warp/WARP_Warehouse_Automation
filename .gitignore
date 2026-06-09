@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+
+# OS
+.DS_Store
+
+# --- Large inputs (not source) ---------------------------------------------
+# Camera clips are input data, not build outputs — keep them out of git history.
+videos/*.mp4
+videos/*.mov
+videos/*.avi
+videos/*.mkv
+videos/*.dav
+videos/*.m4v
+
+# --- Generated images (regenerable; large) ---------------------------------
+# lax9 artifacts: keep small reviewable outputs (CSV/JSON, small heatmap/contact
+# sheet); ignore bulky frames/matches/mosaics.
+artifacts/frames/*.png
+artifacts/matches/*.jpg
+artifacts/mosaic.png
+artifacts/metric_map.png
+artifacts/camera_grid.png
+
+# stitch/ outputs: keep the JSON results; ignore the (multi-MB) PNG/JPG renders
+# and intermediate frame folders.
+stitch/out/*.png
+stitch/out/*.jpg
+stitch/out/stills/
+stitch/out/plates/
+stitch/out/stills_undist/
+stitch/out/matches/
+stitch/out/matches_undist/
+
+# Kept in git: *.json, *.csv, artifacts/overlap_heatmap.png, artifacts/contact_sheet.png
