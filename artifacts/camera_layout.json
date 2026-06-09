@@ -1,0 +1,14 @@
+{
+  "cam_01": {
+    "grid": null,
+    "neighbours": [],
+    "component": 0,
+    "video": null
+  },
+  "cam_02": {
+    "grid": null,
+    "neighbours": [],
+    "component": 1,
+    "video": null
+  }
+}

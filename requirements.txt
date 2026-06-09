@@ -1,0 +1,8 @@
+# LAX-9 Stage 1 — pinned. Python 3.10+ (developed on 3.12).
+opencv-contrib-python==4.10.0.84
+numpy==1.26.4
+matplotlib==3.9.2
+pyyaml==6.0.1
+scipy==1.13.1
+pytest==8.3.3
+# Detector stack (Phase 6) added when the pallet model is provided.

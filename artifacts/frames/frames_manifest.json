@@ -1,0 +1,24 @@
+{
+  "cam_01": {
+    "video": "01.mp4",
+    "median": "cam_01_median.png",
+    "sharp": "cam_01_sharp.png",
+    "chosen": "sharp",
+    "chosen_file": "cam_01_sharp.png",
+    "motion_frac": 0.0017,
+    "median_lap": 2820.7,
+    "sharp_lap": 3064.5,
+    "n_frames_used": 32
+  },
+  "cam_02": {
+    "video": "02.mp4",
+    "median": "cam_02_median.png",
+    "sharp": "cam_02_sharp.png",
+    "chosen": "sharp",
+    "chosen_file": "cam_02_sharp.png",
+    "motion_frac": 0.0017,
+    "median_lap": 1794.0,
+    "sharp_lap": 2103.9,
+    "n_frames_used": 32
+  }
+}

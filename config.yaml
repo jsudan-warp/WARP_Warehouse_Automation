@@ -1,0 +1,122 @@
+# LAX-9 Stage 1 — single source of truth for paths, world frame, thresholds.
+# World-frame constants are taken verbatim from CLAUDE.md. Do not edit casually:
+# every camera, anchor and pallet position is expressed in this frame.
+
+# ----------------------------------------------------------------------------
+# World frame (right-handed, metres). Origin = CENTRE of the floor.
+#   +X along the 51.73 m length, +Y across the 26.3 m depth, +Z up. Floor = Z=0.
+# ----------------------------------------------------------------------------
+world:
+  floor_length_m: 51.73      # +X extent  (169.7 ft)
+  floor_depth_m: 26.3        # +Y extent  (86.3 ft)
+  clear_height_m: 7.62       # ~25 ft
+  # Floor spans X in [-25.865, 25.865], Y in [-13.15, 13.15].
+
+  office:                    # two-story block against the front wall, slightly right of centre
+    size_m: [22.77, 9.2]     # (length_x, depth_y)
+    # Placed against a wall, slightly right of centre. Refined in Phase 5/8 from anchors.
+    center_m: [5.0, -8.55]   # provisional; front wall is -Y side, so office hugs y=-13.15
+  tallest_stack_m: 2.1       # ~7 ft; most stacks shorter
+
+# ----------------------------------------------------------------------------
+# Cameras (14 x Hikvision DS-2CD2083G2-I). The repo currently holds a partial,
+# downscaled preview set — intake reports the REAL count/resolution it finds.
+# ----------------------------------------------------------------------------
+cameras:
+  expected_count: 14
+  native_resolution: [3840, 2160]   # 4K spec; preview clips may be smaller
+  lens_focal_mm: 2.8                # assume until told otherwise (Phase 3 gate)
+  hfov_deg: 107.0
+  mount_height_ft: 24.5
+  grid: [7, 2]                      # 7 across the 51.73 m length, 2 across the 26.3 m depth
+
+# ----------------------------------------------------------------------------
+# Paths (relative to repo root)
+# ----------------------------------------------------------------------------
+paths:
+  videos: videos
+  calib: calib
+  artifacts: artifacts
+  frames: artifacts/frames
+  matches: artifacts/matches
+  mosaic: artifacts/mosaic.png
+  homographies: artifacts/homographies.json
+  camera_layout: artifacts/camera_layout.json
+  overlap_matrix: artifacts/overlap_matrix.csv
+  overlap_heatmap: artifacts/overlap_heatmap.png
+  intrinsics: artifacts/intrinsics.npz
+  metric_transform: artifacts/metric_transform.json
+  metric_map: artifacts/metric_map.png
+  results: RESULTS.md
+
+# ----------------------------------------------------------------------------
+# Phase 1 — frame extraction
+# ----------------------------------------------------------------------------
+frames:
+  n_samples: 32              # frames sampled across each clip for the per-pixel median
+  sharpness_metric: laplacian_var
+  # If the median still shows a parked occluder, fall back to the single sharpest frame.
+
+# ----------------------------------------------------------------------------
+# Phase 2/4 — feature matching
+# ----------------------------------------------------------------------------
+matching:
+  detector: SIFT             # start with SIFT; swap to a learned matcher behind same API if weak
+  # SIFT tuning — pull out MANY more descriptors from faint floor texture.
+  # The default contrastThreshold (0.04) discards weak floor features; lowering it
+  # plus extra octave layers + CLAHE pre-filter yields far more keypoints.
+  max_features: 0            # 0 = retain ALL detected (no top-N cap)
+  contrast_threshold: 0.006  # LOWER => MANY more keypoints (faint floor texture). default 0.04
+  edge_threshold: 16         # HIGHER => keep more edge-like points (cracks/seams). default 10
+  n_octave_layers: 5         # default 3 -> denser scale sampling
+  sigma: 1.6                 # default 1.6
+  clahe_clip: 3.0            # local-contrast boost before detection
+  ratio_test: 0.8            # Lowe ratio (looser -> more candidate matches; RANSAC still gates)
+  ransac_reproj_px: 4.0      # homography RANSAC threshold (working-res pixels)
+  min_inliers: 18            # below this, two cameras are NOT considered neighbours
+  work_max_dim: 1600         # downscale long edge to this for matching (speed); homography rescaled back
+  # Region-of-interest per camera, as fractions of the frame: [fx0, fy0, fx1, fy1]
+  # with (0,0)=top-left, (1,1)=bottom-right. SIFT only detects inside the ROI, so
+  # only the chosen strip of each camera is used for matching. Cameras NOT listed
+  # use the full frame. Here: right half of cam_01 vs left half of cam_02 (the
+  # edge where two horizontally-adjacent tiles would overlap).
+  roi:
+    cam_01: [0.5, 0.0, 1.0, 1.0]   # right half of camera 1
+    cam_02: [0.0, 0.0, 0.5, 1.0]   # left half of camera 2
+
+# ----------------------------------------------------------------------------
+# Phase 3 — lens intrinsics (one calibration covers all 14; same lens)
+# ----------------------------------------------------------------------------
+calibration:
+  # DECISION (Phase 3 gate, user): mode=skip — no lens calibration. The 2.8 mm
+  # barrel is absorbed by the per-camera image->floor warp (see `mapping` below).
+  # Switch to mode=checkerboard and drop board photos in calib/ to undistort instead.
+  mode: skip                # skip | checkerboard
+  checkerboard: [9, 6]      # INNER corners (cols, rows) of the printed board
+  square_size_m: 0.025      # printed square edge (m) — affects scale only, not distortion
+  model: rational           # CALIB_RATIONAL_MODEL for strong barrel; 'fisheye' if edges still bow
+  alpha: 0.0                # getOptimalNewCameraMatrix: 0=crop to valid pixels, 1=keep full FOV
+  rms_target_px: 0.5        # acceptance: RMS reprojection error below this
+  use_for_matching: true    # if intrinsics exist, undistort stills BEFORE Phase 2/4 matching
+
+# ----------------------------------------------------------------------------
+# Phase 4/5 — per-camera image->metric-floor warp (lens-model-free path)
+# Fit straight from measured floor correspondences (pixel <-> world X,Y in metres).
+# Bends with the lens; anchors each camera independently (no overlap needed).
+# ----------------------------------------------------------------------------
+mapping:
+  model: tps                # 'tps' (thin-plate spline, exact interp) or 'poly'
+  poly_degree: 3            # if model=poly: 2 (quadratic) or 3 (cubic)
+  tps_regularization: 0.0   # >0 to smooth through noisy measured points
+  min_points: 10            # minimum measured correspondences per camera to fit a warp
+  recommend_points: 18      # brief: ~15-20 well-spread points per camera (incl. near corners)
+
+# ----------------------------------------------------------------------------
+# Phase 8 — route planning
+# ----------------------------------------------------------------------------
+planning:
+  clearance_m: 1.0           # forklift half-width + buffer; every obstacle inflated by this
+  grid_res_m: 0.10           # occupancy grid cell size
+
+# Reproducibility
+seed: 1234
