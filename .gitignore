@@ -36,4 +36,16 @@ stitch/out/stills_undist/
 stitch/out/matches/
 stitch/out/matches_undist/
 
-# Kept in git: *.json, *.csv, artifacts/overlap_heatmap.png, artifacts/contact_sheet.png
+# --- Detection: model weights + video/large outputs ------------------------
+# Model weights auto-download on first run (ultralytics); never commit them.
+*.pt
+weights/
+mobileclip*.ts
+# Detection videos, annotation reference grids, and the bulky detections grid.
+artifacts/*.mp4
+artifacts/annotate_ref/
+artifacts/pallet_detections_grid.png
+artifacts/visual_prompts.json
+
+# Kept in git: *.json, *.csv, artifacts/overlap_heatmap.png, artifacts/contact_sheet.png,
+#   artifacts/pallet_floor_map.png (small digital-twin result), artifacts/pallets.json
