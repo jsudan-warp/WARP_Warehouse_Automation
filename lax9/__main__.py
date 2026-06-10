@@ -13,13 +13,11 @@ import numpy as np
 from .config import load_config
 
 PHASES = ["intake", "frames", "overlaps", "calibrate", "stitch",
-          "scale", "detect", "map", "plan", "grid"]
+          "scale", "detect", "map", "plan", "grid", "annotate", "video"]
 
 GATES = {
     "scale": "Phase 5 GATE: a handful of measured floor points/distances (laser meter). "
              "Without them the map is correct in shape but not in metres.",
-    "detect": "Phase 6 GATE: the pallet instance-segmentation model (weights or endpoint) "
-              "+ how to call it. A manual-annotation fallback is allowed for testing.",
 }
 
 
@@ -33,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="(plan) destination in metres")
     p.add_argument("--selfcal", action="store_true",
                    help="(calibrate) self-calibrate from footage (no checkerboard)")
+    p.add_argument("--cam", default=None, help="(annotate) restrict to one camera id, e.g. 03")
     return p
 
 
@@ -58,6 +57,15 @@ def main(argv=None) -> int:
     elif phase == "grid":
         from . import grid
         grid.run(cfg, args)
+    elif phase in ("detect", "map"):
+        from . import floor
+        floor.run(cfg, args)
+    elif phase == "annotate":
+        from . import annotate
+        annotate.run(cfg, args)
+    elif phase == "video":
+        from . import video
+        video.run(cfg, args)
     else:
         # Not-yet-built / gated phases: be explicit rather than silently failing.
         print(f"\nPhase '{phase}' is not implemented yet in this build.")

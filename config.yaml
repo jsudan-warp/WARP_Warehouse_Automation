@@ -112,6 +112,37 @@ mapping:
   recommend_points: 18      # brief: ~15-20 well-spread points per camera (incl. near corners)
 
 # ----------------------------------------------------------------------------
+# Phase 6/7 — pallet detection + floor map
+# ----------------------------------------------------------------------------
+detect:
+  backend: yoloeseg                # yoloeseg (default: masks + best recall, no training)
+                                   #   | yoloworld (boxes, lightest CPU) | userseg (YOUR model)
+  model: yoloe-11s-seg.pt          # YOLOE small-seg: instance masks + text/visual prompts
+  mode: text                       # text (descriptive prompts) | visual (per-camera examples)
+  prompts:                         # descriptive prompts beat bare "pallet" at near-nadir
+    - wooden pallet
+    - stacked cardboard boxes
+    - shrink-wrapped pallet
+    - stack of boxes
+    - palletized goods
+  conf: 0.15                       # YOLOE recall is strong; raise to cut weak false positives
+  iou: 0.5
+  min_area_frac: 0.0015            # drop tiny noise detections (< this fraction of the frame)
+  max_area_frac: 0.18              # drop huge false detections (e.g. a whole rack as one box)
+  group_iou: 0.15                  # merge boxes overlapping more than this (kills nested duplicates)
+  group_frac: 0.0                  # >0: also merge footprints within this*frame_diag into ONE
+                                   #     whole-pallet load (e.g. 0.05)
+  # mode: visual  -> first run `python -m lax9 annotate` to mark example pallets per camera.
+  # userseg: { weights: path/to/model, ... }   # filled when the existing model is provided
+
+# ----------------------------------------------------------------------------
+# Video output (python -m lax9 video)
+# ----------------------------------------------------------------------------
+video:
+  n_frames: 40                     # frames sampled per camera across the clip
+  fps: 5                           # output video fps (clips are ~static; keep modest)
+
+# ----------------------------------------------------------------------------
 # Phase 8 — route planning
 # ----------------------------------------------------------------------------
 planning:
